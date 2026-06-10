@@ -1,61 +1,73 @@
 const express = require("express");
 const app = express();
-
+const db = require("./db/queries");
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Create a to-do item
-app.post('/todos', (req, res) => {
+app.post('/todos', async (req, res) => {
 
-    // Check that request body contains title and description
-    if(!req.body.title || !req.body.description) {
+    // Check that there's a request body and that it contains title and description
+    if(!req.body || !req.body.title || !req.body.description) {
         return res.status(400).send('Title and Description are required.');
     }
 
-    // TODO: database stuff (and then change the id value below)
+    // Add task to database table
+    // TODO: update 1 with actual user_id
+    await db.insertTask(req.body.title, req.body.description, 1);
+
+    // Get task from database table, so you can get the id from the database table
+    const task = await db.getLatestTask(req.body.title, req.body.description, 1);
 
     // Upon successful creation of the to-do item, respond with the details of the created item.
     return res.json({
-        id: 1,
-        title: req.body.title,
-        description: req.body.description
+        id: task.id,
+        title: task.title,
+        description: task.description
     });
 
 });
 
 // Update a to-do item
-app.put('/todos/:id', (req, res) => {
+app.put('/todos/:id', async (req, res) => {
 
     // Check that request body contains title and description
-    // TODO: HOW TO MAKE SURE YOU DON'T DUPLICATE THIS CODE WITH POST?
-    if(!req.body.title || !req.body.description) {
+    if(!req.body || !req.body.title || !req.body.description) {
         return res.status(400).send('Title and Description are required.');
     }
 
-    // TODO: database stuff
+    // Update database table record
+    const id = parseInt(req.params.id, 10);
+    await db.updateTask(req.body.title, req.body.description, id);
 
-    // Upon successful update of the to-do item, respond with the details of the created item.
+    // Get record that was just updated from the database table
+    const task = await db.getTask(id);
+
+    // Upon successful update of the to-do item, respond with the details of the updated item.
     return res.json({
-        id: Number(req.params.id),
-        title: req.body.title,
-        description: req.body.description
+        id: task.id,
+        title: task.title,
+        description: task.description
     });
 
 });
 
 // Delete a to-do item
-app.delete('/todos/:id', (req, res) => {
+app.delete('/todos/:id', async (req, res) => {
 
-    // TODO: database stuff
+    // Delete task from database table
+    const id = parseInt(req.params.id, 10);
+    await db.deleteTask(id);
 
     // Upon successful deletion of the to-do item, respond with a 204 status code
     return res.status(204).send();
 });
 
 // Get to-do items
-app.get('/todos', (req, res) => {
+app.get('/todos', async (req, res) => {
+
     // Check that request query contains page and limit
-    if(!req.query.page || !req.query.limit) {
+    if(!req.query || !req.query.page || !req.query.limit) {
         return res.status(400).send('URL should look like: http://localhost:3000/todos?page=1&limit=10 with page and limit.');
     }
 
@@ -63,35 +75,17 @@ app.get('/todos', (req, res) => {
     const page = parseInt(req.query.page, 10);
     const limit = parseInt(req.query.limit, 10);
 
-    // TODO: database stuff (and then change what you return below)
+    // Get tasks and count of tasks to return from database table
+    const tasks = await db.getAllTasks();
+    const count = await db.getTaskCount();
 
     // Respond with the list of to-do items along with the pagination details.
     return res.json({
-        data: "need data",
+        data: tasks,
         page: page,
         limit: limit,
-        total: "calc total"
+        total: count
     });
-    /*
-    What you want to return:
-    {
-    "data": [
-        {
-        "id": 1,
-        "title": "Buy groceries",
-        "description": "Buy milk, eggs, bread"
-        },
-        {
-        "id": 2,
-        "title": "Pay bills",
-        "description": "Pay electricity and water bills"
-        }
-    ],
-    "page": 1,
-    "limit": 10,
-    "total": 2
-    }
-    */
 });
 
 const PORT = 3000;
