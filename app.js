@@ -4,6 +4,24 @@ const db = require("./db/queries");
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Create user / User registration
+app.post('/register', async (req, res) => {
+
+    // Check that there's a request body and that it contains name, email and password
+    if(!req.body || !req.body.name || !req.body.email || !req.body.password) {
+        return res.status(400).send('Name, email and password are required.');
+    }
+
+    // Add new user to database table
+    await db.insertUser(req.body.name, req.body.email, req.body.password);
+
+    // Respond with a token that can be used for authentication.
+    return res.json({
+        token: "xyz"
+    });
+
+});
+
 // Create a to-do item
 app.post('/todos', async (req, res) => {
 

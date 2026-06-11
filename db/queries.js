@@ -46,6 +46,10 @@ async function deleteTask(id) {
     return;
 }
 
+async function insertUser(name, email, password) {
+    await pool.query("INSERT INTO users (name, email, password) VALUES ($1, $2, $3)", [name, email, password]);
+}
+
 module.exports = {
     getAllTasks,
     getLatestTask,
@@ -53,5 +57,6 @@ module.exports = {
     getTaskCount,
     insertTask,
     updateTask,
-    deleteTask
+    deleteTask,
+    insertUser
 };
