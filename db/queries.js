@@ -50,6 +50,22 @@ async function insertUser(name, email, password) {
     await pool.query("INSERT INTO users (name, email, password) VALUES ($1, $2, $3)", [name, email, password]);
 }
 
+async function getUser(email) {
+    const { rows } = await pool.query(
+        "SELECT id, name, email, password FROM users WHERE email = $1",
+        [email]
+    );
+    return rows[0];
+}
+
+async function getUserWithID(id) {
+    const { rows } = await pool.query(
+        "SELECT id, name, email, password FROM users WHERE id = $1",
+        [id]
+    );
+    return rows[0];
+}
+
 module.exports = {
     getAllTasks,
     getLatestTask,
@@ -58,5 +74,7 @@ module.exports = {
     insertTask,
     updateTask,
     deleteTask,
-    insertUser
+    insertUser,
+    getUser,
+    getUserWithID
 };

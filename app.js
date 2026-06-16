@@ -1,8 +1,50 @@
 const express = require("express");
-const app = express();
 const db = require("./db/queries");
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = process.env.JWT_SECRET;
+const passport = require("passport");
+const LocalStrategy = require("passport-local").Strategy;
+const { Strategy: JwtStrategy, ExtractJwt } = require("passport-jwt");
+
+const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// functions to authenticate user
+passport.use(
+    new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
+        try {
+            const user = await db.getUser(email);
+            if (!user) {
+                return done(null, false, { message: "Email not found" });
+            }
+            if (user.password !== password) {
+                return done(null, false, { message: "Incorrect password" });
+            }
+            return done(null, user);
+        } catch(err) {
+            return done(err);
+        }
+    })
+);
+
+passport.use(new JwtStrategy(
+    {
+        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+        secretOrKey: JWT_SECRET,
+    },
+    async (payload, done) => {
+        try {
+            const user = await db.getUserWithID(payload.id);
+            if (!user) {
+                return done(null, false);
+            }
+            return done(null, user);
+        } catch (err) {
+            return done(err);
+        }
+    }
+));
 
 // Create user / User registration
 app.post('/register', async (req, res) => {
@@ -22,8 +64,31 @@ app.post('/register', async (req, res) => {
 
 });
 
+// User log in
+app.post('/login', (req, res, next) => {
+
+    // Check that there's a request body and that it contains email and password
+    if(!req.body || !req.body.email || !req.body.password) {
+        return res.status(400).send('Email and password are required.');
+    }
+
+    // use passport to authenticate the provided credentials
+    passport.authenticate("local", { session: false }, (err, user, info) => {
+        if (err) {
+            return next(err);
+        }
+        if (!user) {
+            return res.status(401).json({ message: info?.message || "Login failed" });
+        }
+        const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: "15m" });
+        return res.json({ token });
+    }) (req, res, next);
+});
+
 // Create a to-do item
-app.post('/todos', async (req, res) => {
+app.post('/todos', passport.authenticate("jwt", { session: false }), async (req, res) => {
+
+    // if authentication is unsuccessful, the response is 401 Unauthorized
 
     // Check that there's a request body and that it contains title and description
     if(!req.body || !req.body.title || !req.body.description) {
@@ -31,11 +96,10 @@ app.post('/todos', async (req, res) => {
     }
 
     // Add task to database table
-    // TODO: update 1 with actual user_id
-    await db.insertTask(req.body.title, req.body.description, 1);
+    await db.insertTask(req.body.title, req.body.description, req.user.id);
 
     // Get task from database table, so you can get the id from the database table
-    const task = await db.getLatestTask(req.body.title, req.body.description, 1);
+    const task = await db.getLatestTask(req.body.title, req.body.description, req.user.id);
 
     // Upon successful creation of the to-do item, respond with the details of the created item.
     return res.json({
@@ -112,5 +176,5 @@ app.listen(PORT, (error) => {
   if (error) {
     throw error;
   }
-  console.log(`My first Express app - listening on port ${PORT}!`);
+  console.log(`Express app - listening on port ${PORT}!`);
 });
