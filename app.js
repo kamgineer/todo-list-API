@@ -1,5 +1,6 @@
 const express = require("express");
 const db = require("./db/queries");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET;
 const passport = require("passport");
@@ -18,7 +19,8 @@ passport.use(
             if (!user) {
                 return done(null, false, { message: "Email not found" });
             }
-            if (user.password !== password) {
+            const match = await bcrypt.compare(password, user.password);
+            if (!match) {
                 return done(null, false, { message: "Incorrect password" });
             }
             return done(null, user);
@@ -47,7 +49,7 @@ passport.use(new JwtStrategy(
 ));
 
 // Create user / User registration
-app.post('/register', async (req, res) => {
+app.post('/register', async (req, res, next) => {
 
     // Check that there's a request body and that it contains name, email and password
     if(!req.body || !req.body.name || !req.body.email || !req.body.password) {
@@ -55,8 +57,14 @@ app.post('/register', async (req, res) => {
     }
 
     // Add new user to database table
-    await db.insertUser(req.body.name, req.body.email, req.body.password);
-
+    try {
+        const hashedPassword = await bcrypt.hash(req.body.password, 10);
+        await db.insertUser(req.body.name, req.body.email, hashedPassword);
+    } catch (error) {
+        console.error(error);
+        next(error);
+    }
+    
     // Respond with a token that can be used for authentication.
     return res.json({
         token: "xyz"
