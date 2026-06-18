@@ -91,7 +91,6 @@ app.post('/login', (req, res, next) => {
 
 // Create a to-do item
 app.post('/todos', passport.authenticate("jwt", { session: false }), async (req, res) => {
-
     // if authentication is unsuccessful, the response is 401 Unauthorized
 
     // Check that there's a request body and that it contains title and description
@@ -115,7 +114,8 @@ app.post('/todos', passport.authenticate("jwt", { session: false }), async (req,
 });
 
 // Update a to-do item
-app.put('/todos/:id', async (req, res) => {
+app.put('/todos/:id', passport.authenticate("jwt", { session: false }), async (req, res) => {
+    // if authentication is unsuccessful, the response is 401 Unauthorized
 
     // Check that request body contains title and description
     if(!req.body || !req.body.title || !req.body.description) {
@@ -139,7 +139,8 @@ app.put('/todos/:id', async (req, res) => {
 });
 
 // Delete a to-do item
-app.delete('/todos/:id', async (req, res) => {
+app.delete('/todos/:id', passport.authenticate("jwt", { session: false }), async (req, res) => {
+    // if authentication is unsuccessful, the response is 401 Unauthorized
 
     // Delete task from database table
     const id = parseInt(req.params.id, 10);
@@ -150,7 +151,8 @@ app.delete('/todos/:id', async (req, res) => {
 });
 
 // Get to-do items
-app.get('/todos', async (req, res) => {
+app.get('/todos', passport.authenticate("jwt", { session: false }), async (req, res) => {
+    // if authentication is unsuccessful, the response is 401 Unauthorized
 
     // Check that request query contains page and limit
     if(!req.query || !req.query.page || !req.query.limit) {
