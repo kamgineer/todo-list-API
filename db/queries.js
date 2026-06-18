@@ -47,7 +47,11 @@ async function deleteTask(id) {
 }
 
 async function insertUser(name, email, password) {
-    await pool.query("INSERT INTO users (name, email, password) VALUES ($1, $2, $3)", [name, email, password]);
+    const { rows } = await pool.query(
+        "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, email",
+        [name, email, password]
+    );
+    return rows[0];
 }
 
 async function getUser(email) {

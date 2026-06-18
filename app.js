@@ -59,17 +59,13 @@ app.post('/register', async (req, res, next) => {
     // Add new user to database table
     try {
         const hashedPassword = await bcrypt.hash(req.body.password, 10);
-        await db.insertUser(req.body.name, req.body.email, hashedPassword);
+        const newUser = await db.insertUser(req.body.name, req.body.email, hashedPassword);
+        const token = jwt.sign({ id: newUser.id, email: newUser.email }, JWT_SECRET, { expiresIn: "15m" });
+        return res.json({ token });
     } catch (error) {
         console.error(error);
         next(error);
     }
-    
-    // Respond with a token that can be used for authentication.
-    return res.json({
-        token: "xyz"
-    });
-
 });
 
 // User log in
