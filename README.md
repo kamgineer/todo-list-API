@@ -30,6 +30,7 @@ Javascript, Node, Express, PostgreSQL, bcrypt, Passport.js, Postman, JWTs (JSON 
 ## Components
 
 ### REST API design
+Diagram from: https://roadmap.sh/projects/todo-list-api
 
 ![App design](app_design.png)
 
